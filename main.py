@@ -54,7 +54,11 @@ def reader(ser, str_length):
     print("out of loop")
     return ''.join(data)
 
-def writer(ser, STR_EXP):
+def writer(ser: serial, STR_EXP: str) -> list:
+    """
+    Writes a multiline string of commands to the serial port with the proper line endings.
+    Reads data back from each command. Prints the data and saves it to a list.
+    """
 
     # send carriage return to get us to a known state in the DSP
     preamble = '\r'
@@ -78,19 +82,18 @@ def writer(ser, STR_EXP):
     
     return data
 
-    
-
-
-TEST1 = b'v\r'
-
-TEST2 = b"""
-efgh
-"""
-
-
-
-
 if __name__ == '__main__':
+
+    # Tests to be run are defined in these multiline string variables
+    TEST1 = \
+    b"""
+    v
+    """
+
+    TEST2 =\
+    b"""
+    v
+    """
 
     if not COM_PORT:
         ask_for_port()
@@ -106,10 +109,15 @@ if __name__ == '__main__':
                 rtscts=False
             )
 
-        if ser.is_open:
-            print("Serial Terminal opened successfully.")
-        else:
+        if not ser.is_open:
             print("Unable to open serial port")
             exit()
+
+        print("Serial Terminal opened successfully.")
+
+        print("Sending Commands")
+
+        writer(ser, TEST1)
+            
 
         ser.close()

@@ -5,8 +5,9 @@ import time
 from serial.tools.list_ports import comports
 
 
-COM_PORT = "/dev/cu.usbserial-1420"
+COM_PORT = ""
 BAUD_RATE = 19200
+
 
 try:
     raw_input
@@ -40,63 +41,59 @@ def ask_for_port():
             port = ports[index]
         return port
 
-def reader(ser):
-        """loop and copy serial->console"""
-        alive = True
+def reader(ser, str_length):
+    """read multiple values from the serial port."""
+    alive = True
+    data = []
 
-        try:
-            while alive:
-                # read all that is there or wait for one byte
-                data = ser.read(ser.in_waiting or 1)
-                if data:
-                    print(data)
-        except serial.SerialException:
-            alive = False
-            raise       # XXX handle instead of re-raise?
+    for i in range(0, str_length):
+        print(i)
+        # read all that is there or wait for one byte
+        data.append(ser.read(1))
+        print(data)
+    print("out of loop")
+    return ''.join(data)
 
-def writer(self):
-        """\
-        Loop and copy console->serial until self.exit_character character is
-        found. When self.menu_character is found, interpret the next key
-        locally.
-        """
-        menu_active = False
-        try:
-            while self.alive:
-                try:
-                    c = self.console.getkey()
-                except KeyboardInterrupt:
-                    c = '\x03'
-                if not self.alive:
-                    break
-                if menu_active:
-                    self.handle_menu_key(c)
-                    menu_active = False
-                elif c == self.menu_character:
-                    menu_active = True      # next char will be for menu
-                elif c == self.exit_character:
-                    self.stop()             # exit app
-                    break
-                else:
-                    #~ if self.raw:
-                    text = c
-                    for transformation in self.tx_transformations:
-                        text = transformation.tx(text)
-                    self.serial.write(self.tx_encoder.encode(text))
-                    if self.echo:
-                        echo_text = c
-                        for transformation in self.tx_transformations:
-                            echo_text = transformation.echo(echo_text)
-                        self.console.write(echo_text)
-        except:
-            self.alive = False
-            raise
+def writer(ser, STR_EXP):
+
+    # send carriage return to get us to a known state in the DSP
+    preamble = '\r'
+    ser.write(preamble)
+    ser.read()
+
+    data = []
+
+    for line in STR_EXP.splitlines():
+        ser.write(line + '\r')
+        ser.flush()
+
+        # wait for a response to be transmitted
+        time.sleep(1e-2)
+
+        # read the response
+        data.append( ser.read(ser.in_waiting) )
+
+        # print the response
+        print(data[-1])
+    
+    return data
+
+    
+
+
+TEST1 = b'v\r'
+
+TEST2 = b"""
+efgh
+"""
 
 
 
 
 if __name__ == '__main__':
-    # COM_PORT = ask_for_port()
+
+    if not COM_PORT:
+        ask_for_port()
 
     if COM_PORT:
         # configure the serial connections (the parameters differs on the device you are connecting to)
@@ -109,15 +106,10 @@ if __name__ == '__main__':
                 rtscts=False
             )
 
-        print(ser.is_open)
-        
-        ser.write(b"B")
+        if ser.is_open:
+            print("Serial Terminal opened successfully.")
+        else:
+            print("Unable to open serial port")
+            exit()
 
-
-        ser.flush()
-
-        data = ser.read(1)
-
-        if data:
-            print(data)
         ser.close()
